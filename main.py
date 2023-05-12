@@ -1,7 +1,5 @@
 import pygame
 import keyboard
-import time
-from sys import exit
 
 pygame.init()
 screen = pygame.display.set_mode((1200, 600))
@@ -9,6 +7,26 @@ pygame.display.set_caption('Contra')
 clock = pygame.time.Clock()
 background_surface = pygame.Surface([1200, 600])
 background_surface.fill((77, 75, 118))
+
+class bulletRight(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__()
+        self.image = pygame.image.load('player_character/bullet.png')
+        self.rect = self.image.get_rect(center = (pos_x, pos_y))
+    def update(self):
+        self.rect.x += 15
+        if self.rect.x > screen.get_width():
+            del self
+class bulletLeft(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__()
+        self.image = pygame.image.load('player_character/bullet.png')
+        self.rect = self.image.get_rect(center = (pos_x, pos_y))
+    def update(self):
+        self.rect.x -= 15
+        if self.rect.x < 0:
+            del self
+bullet_group = pygame.sprite.Group()
 
 global player_img
 player_img = pygame.image.load('player_character\Player_Stand\image0-rb.png')
@@ -20,7 +38,6 @@ global enemy_img
 enemy_img = pygame.image.load('Enemy_character\Enemy_Stand\image_backward.png')
 global enemy_rect
 enemy_rect = enemy_img.get_rect(bottomleft=(200, 455))
-
 currentIndex = 0
 def playerRunForward():
     global currentIndex
@@ -30,7 +47,6 @@ def playerRunForward():
     if currentIndex == 8:
         currentIndex = 0
     return player_img
-
 currentIndex_back = 0
 def playerRunBack():
     global currentIndex_back
@@ -40,12 +56,9 @@ def playerRunBack():
     if currentIndex_back == 8:
         currentIndex_back = 0
     return player_img
-
-
 global gravity
 gravity = 5
 forwardSpin_Index = 0
-
 def player_Gravity(gravity, player_rect):
     global forwardSpin_Index
     global  player_img
@@ -61,10 +74,6 @@ def player_Gravity(gravity, player_rect):
         player_rect.bottom += gravity
         gravity += 5
     return player_img
-
-
-
-
 def createGround(maxRows, maxColumns):
     for row in range(maxRows):
         for col in range(maxColumns):
@@ -81,52 +90,103 @@ def createGround(maxRows, maxColumns):
             ground_origin = [0, 450]
             temp_list = [ground_origin[0] + 16 * col, ground_origin[1] + 16 * row]
             screen.blit(img, tuple(temp_list))
-
-
-def createTrunk(height):
+def createTrunk(height, x_cord):
     for i in range(height):
-        trunk_img = pygame.image.load('Forest_tiles\Tree_dark\image0.png')
-        y_cordinate = ground_levelY - i * 50
-        trunk_rect = trunk_img.get_rect(bottomleft=(300, y_cordinate))
+        trunk_img = pygame.image.load('Forest_tiles\Tree_Light\image0.png')
+        y_cordinate = ground_levelY - i * trunk_img.get_height()
+        trunk_rect = trunk_img.get_rect(bottomleft=(x_cord, y_cordinate))
         screen.blit(trunk_img, trunk_rect)
-    return trunk_rect.bottomleft
-
-
-def populate(row, slotNo, startCord):
-    if slotNo == 0:
-        if row == 0:
-            img = pygame.image.load("Forest_tiles\Tree_Light/bottom_left.png")
-        if row == 1:
-            img = pygame.image.load('Forest_tiles\Tree_Light\center.png')
-        if row == 2:
-            img = pygame.image.load('Forest_tiles\Tree_Light/top_left.png')
-    else:
-        img = pygame.image.load('Forest_tiles\Tree_Light\center.png')
-    img_rect = img.get_rect(bottomleft=(startCord[0] - 50 * slotNo, startCord[1]))
-    screen.blit(img, img_rect)
-    if slotNo > 0:
-        startCord = (img_rect.bottomleft[0] - 50, img_rect.bottomleft[1])
-        populate(row, slotNo - 1, (img_rect.bottomleft[0] - 50, img_rect.bottomleft[1]))
-
-
+    return trunk_rect.topleft
 def createLeaves(width, start_cordinates):
-    for row in range(width+1):
-        if row == width:
-            img = pygame.image.load('Forest_tiles\Tree_Light\mid_top.png')
-        else:
-            img = pygame.image.load('Forest_tiles\Tree_Light\center.png')
-        y_coord = start_cordinates[1] - 50 * row
-        img_rect = img.get_rect(bottomleft=(start_cordinates[0], y_coord))
-        if row < width:
-            slotNo = (width-1)//2
-            populate(row, slotNo, img_rect.bottomleft)
+    slots_left = slots_right = (width-1)//2
+    start_cordinates = list(start_cordinates)
+    start_cordinates[0] = start_cordinates[0] - slots_left*50
+    for col in range(slots_left):
+        for row in range(width):
+            if col == 0:
+                if row == 0:
+                    img = pygame.image.load('Forest_tiles\Tree_Light/bottom_left.png')
+                if row == width-1:
+                    img = pygame.image.load('Forest_tiles\Tree_Light/top_left.png')
+                else:
+                    img = pygame.image.load('Forest_tiles\Tree_Light\center.png')
+            else:
+                img = pygame.image.load('Forest_tiles\Tree_Light\center.png')
+
+            img_rect = img.get_rect(bottomleft = (start_cordinates))
+            screen.blit(img, img_rect)
+            start_cordinates[1] -= 50
+        start_cordinates[0] += 50
+        start_cordinates[1] += width*50
+
+    for i in range(width):
+        img = pygame.image.load('Forest_tiles\Tree_Light\center.png')
+        img_rect = img.get_rect(bottomleft = (start_cordinates))
         screen.blit(img, img_rect)
+        start_cordinates[1] -= 50
 
+    start_cordinates[1] += width*50
+    start_cordinates[0] += 50
 
-# this still needs a lot of work
-def createTree(treeHeight, leafWidth):
-    createLeaves(leafWidth, createTrunk(treeHeight))
+    for col in range(slots_right):
+        for row in range(width):
+            if row == 0 and col == slots_right-1:
+                img = pygame.image.load('Forest_tiles\Tree_Light/bottom_right.png')
+            if row == width-1 and col == slots_right-1:
+                img = pygame.image.load('Forest_tiles\Tree_Light/top_right.png')
+            else:
+                img = pygame.image.load('Forest_tiles\Tree_Light\center.png')
+            img_rect = img.get_rect(bottomleft =(start_cordinates))
+            screen.blit(img, img_rect)
+            start_cordinates[1] -= 50
+        start_cordinates[0] += 50
+        start_cordinates[1] += 50*width
+def createTree(treeHeight, leafWidth, x_cord):
+    createLeaves(leafWidth, createTrunk(treeHeight, x_cord))
+def addForestSprites(x_cord, clusters):
+    img1 =pygame.image.load('Playground_Objects/image0.png')
+    img1_rect = img1.get_rect(bottomleft = (x_cord, ground_levelY))
+    img2 = pygame.image.load('Playground_Objects/image1.png')
+    img2_rect = img2.get_rect(bottomleft = (x_cord + 25, ground_levelY))
+    img3 = pygame.image.load('Playground_Objects/image2.png')
+    img3_rect = img3.get_rect(bottomleft = (x_cord +50, ground_levelY))
 
+    screen.blit(img1, img1_rect)
+    screen.blit(img2, img2_rect)
+    screen.blit(img3, img3_rect)
+    if clusters - 1 > 0:
+        addForestSprites(x_cord + 200, clusters -1)
+def addOcean():
+    start = [0, screen.get_height()]
+    while start[0] < screen.get_width():
+        img = pygame.image.load('Forest_tiles/Stagnant_Water/image_dark.png')
+        img_rect = img.get_rect(bottomleft =(start))
+        screen.blit(img, img_rect)
+        start[0] += img.get_width()
+def addWaterFall(groundColummns, waterFall_height):
+    available_Slots = (screen.get_width() - 16*groundColummns)//50 + 1
+    start = [16*groundColummns, screen.get_height()-50]
+    for col in range(available_Slots):
+        for row in range(waterFall_height):
+            if col % 3 == 1:
+                img = pygame.image.load('Forest_tiles/Waterfall_light/image0.png')
+            if col % 3 == 2:
+                img = pygame.image.load('Forest_tiles/Waterfall_light/image1.png')
+            if col%3 == 0:
+                img = pygame.image.load('Forest_tiles/Waterfall_light/image2.png')
+            img_rect = img.get_rect(bottomleft = (start))
+            screen.blit(img, img_rect)
+            if(row == 0):
+                cloudy_img = pygame.image.load('Forest_tiles/Waterfall_light/frothDown.png')
+                cloudy_img_rect = cloudy_img.get_rect(bottomleft = (start))
+                screen.blit(cloudy_img, cloudy_img_rect)
+            if(row == waterFall_height-1):
+                log_img = pygame.image.load('Forest_tiles/Tree_dark/image14.png')
+                log_img_rect = log_img.get_rect(bottomleft = (start[0],start[1]-50))
+                screen.blit(log_img, log_img_rect)
+            start[1] -= img.get_height()
+        start[0] += 49
+        start[1] += 50*waterFall_height
 def enemy_Gravity():
     global gravity
     if enemy_rect.bottom < ground_levelY:
@@ -135,7 +195,6 @@ def enemy_Gravity():
             gravity = 5
         enemy_rect.bottom += gravity
         gravity += 5
-
 enemyIMG_index = 0
 def moveEnemy():
     global enemyIMG_index
@@ -148,16 +207,29 @@ def moveEnemy():
     enemy_rect.right -= 5
     if enemy_rect.right < 0:
         enemy_rect.left = 1200
-        enemy_rect.bottom = 100
-    enemy_Gravity()
-
-
+        enemy_rect.bottom = 275
+    if enemy_rect.right<960:
+        enemy_Gravity()
+def playerShoot(start_coordinates, button):
+    img = pygame.image.load('player_character/bullet.png')
+    img_rect = img.get_rect(center = (start_coordinates))
+    screen.blit(img, img_rect)
+    if button == 'left':
+        while img_rect.left > 0:
+            img_rect.left -= 10
+    if button == 'right':
+        img_rect.right += 20
 while True:
     screen.blit(background_surface, (0, 0))
-    maxColumns = 50
+    maxColumns = 60
     maxRows = 10
     createGround(maxRows, maxColumns)
-    createTree(5, 3)
+    addWaterFall(maxColumns,5)
+    addOcean()
+    createTree(5, 3, 200)
+    createTree(5,3, 400)
+    createTree(5, 3, 600)
+    addForestSprites(75,4)
     player_img = player_Gravity(gravity, player_rect)
     moveEnemy()
 
@@ -165,14 +237,22 @@ while True:
         if currentIndex == 8:
             currentIndex = 0
         player_img = playerRunForward()
+        if keyboard.is_pressed('s'):
+            bullet_group.add(bulletRight(player_rect.midright[0], player_rect.midright[1]))
     elif keyboard.is_pressed('left'):
         player_img = playerRunBack()
+        if keyboard.is_pressed('s'):
+            bullet_group.add(bulletLeft(player_rect.midleft[0], player_rect.midleft[1]))
     elif keyboard.is_pressed('up'):
         player_rect.bottom -= 30
     else:
         player_img = pygame.image.load('player_character\Player_Stand\image0-rb.png')
+        if keyboard.is_pressed('s'):
+            bullet_group.add(bulletRight(player_rect.midright[0], player_rect.midright[1]))
 
     screen.blit(player_img, player_rect)
     screen.blit(enemy_img, enemy_rect)
+    bullet_group.draw(screen)
+    bullet_group.update()
     pygame.display.update()
     clock.tick(60)
