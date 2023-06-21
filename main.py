@@ -118,7 +118,7 @@ def createLeaves(width, start_cordinates):
             start_cordinates[1] -= 50
         start_cordinates[0] += 50
         start_cordinates[1] += width*50
-
+        #class here
     for i in range(width):
         img = pygame.image.load('Forest_tiles\Tree_Light\center.png')
         img_rect = img.get_rect(bottomleft = (start_cordinates))
